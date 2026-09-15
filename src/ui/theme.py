@@ -11,8 +11,9 @@ _SURFACE = "#33312e"
 _BORDER = "#3d3a36"
 _TEXT = "#f2efe9"
 _TEXT_SUBDUED = "#a39d92"
-_ACCENT = "#cc7a54"
-_ACCENT_HOVER = "#d98f6c"
+_ACCENT = "#7a9b6e"
+_ACCENT_HOVER = "#8dae81"
+_ACCENT_SOFT = "#2b3327"
 
 THEME = gr.themes.Base(
     font=[gr.themes.GoogleFont("Inter"), "ui-sans-serif", "system-ui", "sans-serif"],
@@ -33,8 +34,8 @@ THEME = gr.themes.Base(
     border_color_accent=_ACCENT,
     border_color_accent_dark=_ACCENT,
     color_accent=_ACCENT,
-    color_accent_soft="#3a2e28",
-    color_accent_soft_dark="#3a2e28",
+    color_accent_soft=_ACCENT_SOFT,
+    color_accent_soft_dark=_ACCENT_SOFT,
     link_text_color=_ACCENT,
     link_text_color_dark=_ACCENT,
     shadow_drop="none",
@@ -89,8 +90,8 @@ THEME = gr.themes.Base(
     button_primary_background_fill_dark=_ACCENT,
     button_primary_background_fill_hover=_ACCENT_HOVER,
     button_primary_background_fill_hover_dark=_ACCENT_HOVER,
-    button_primary_text_color="#241c17",
-    button_primary_text_color_dark="#241c17",
+    button_primary_text_color="#1a2117",
+    button_primary_text_color_dark="#1a2117",
     button_primary_shadow="none",
     button_primary_shadow_hover="none",
     button_primary_shadow_active="none",
@@ -279,7 +280,7 @@ CSS = """
     "border": _BORDER,
     "text": _TEXT,
     "subdued": _TEXT_SUBDUED,
-    "accent_soft": "#3a2e28",
+    "accent_soft": _ACCENT_SOFT,
 }
 
 FORCE_DARK_JS = """
