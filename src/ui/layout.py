@@ -1,5 +1,9 @@
 """Build the Gradio Blocks layout and wire all events.
 
+Single-dashboard layout: project setup and file uploads live in a collapsed
+accordion (secondary, out of the way); chat and manuscript are always visible
+side by side as the primary writing workspace.
+
 Event wiring:
   Load Project button   -> project_events.load_project
   Papers .upload()      -> upload_events.process_papers
@@ -14,6 +18,7 @@ from src.ui import chat_events, manuscript_events, project_events, state as ui_s
 
 
 def build_layout() -> gr.Blocks:
+    # theme/css/js are passed to demo.launch() in app.py (moved there in Gradio 6).
     with gr.Blocks(title="Scientific Writing AI") as demo:
         # --- cross-call session state ---
         state_user_project = gr.State(ui_state.initial_user_project())
@@ -25,41 +30,42 @@ def build_layout() -> gr.Blocks:
         state_manuscript_text = gr.State(ui_state.initial_manuscript_text())
         state_manuscript_versions = gr.State(ui_state.initial_manuscript_versions())
 
+        with gr.Accordion("Project & Sources", open=False):
+            with gr.Row():
+                user_box = gr.Textbox(label="User name")
+                project_box = gr.Textbox(label="Project name")
+                load_btn = gr.Button("Load / Start Project", variant="primary")
+            project_status = gr.Markdown()
+
+            with gr.Row():
+                with gr.Column():
+                    papers_upload = gr.File(
+                        label="Research Papers (1-10, PDF)",
+                        file_count="multiple",
+                        file_types=[".pdf"],
+                    )
+                    papers_status = gr.Markdown()
+
+                with gr.Column():
+                    samples_upload = gr.File(
+                        label="Writing Samples (1-10, PDF/TXT/MD)",
+                        file_count="multiple",
+                        file_types=[".pdf", ".txt", ".md"],
+                    )
+                    samples_status = gr.Markdown()
+
         with gr.Row():
-            with gr.Column(scale=1):
-                with gr.Tabs():
-                    with gr.Tab("Project"):
-                        user_box = gr.Textbox(label="User name")
-                        project_box = gr.Textbox(label="Project name")
-                        load_btn = gr.Button("Load / Start Project", variant="primary")
-                        project_status = gr.Markdown()
-
-                    with gr.Tab("Files"):
-                        papers_upload = gr.File(
-                            label="Research Papers (1-10, PDF)",
-                            file_count="multiple",
-                            file_types=[".pdf"],
-                        )
-                        papers_status = gr.Markdown()
-
-                        samples_upload = gr.File(
-                            label="Writing Samples (1-10, PDF/TXT/MD)",
-                            file_count="multiple",
-                            file_types=[".pdf", ".txt", ".md"],
-                        )
-                        samples_status = gr.Markdown()
-
-                    with gr.Tab("Manuscript"):
-                        manuscript_display = gr.Textbox(
-                            label="Current manuscript", lines=18, interactive=False
-                        )
-                        versions_radio = gr.Radio(label="Version history (last 5)", choices=[])
-                        revert_btn = gr.Button("Revert to selected version")
-
             with gr.Column(scale=2):
                 chatbot = gr.Chatbot(label="Scientific Writing AI", height=600)
                 msg_box = gr.Textbox(label="Message", placeholder="Ask, write, rewrite, review...")
                 send_btn = gr.Button("Send", variant="primary")
+
+            with gr.Column(scale=1):
+                manuscript_display = gr.Textbox(
+                    label="Current manuscript", lines=20, interactive=False
+                )
+                versions_radio = gr.Radio(label="Version history (last 5)", choices=[])
+                revert_btn = gr.Button("Revert to selected version")
 
         # --- Project ---
         load_btn.click(
