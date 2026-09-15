@@ -208,24 +208,28 @@ CSS = """
     gap: 6px !important;
 }
 #pin-btn, #delete-btn {
-    background: transparent !important;
-    color: %(subdued)s !important;
-    font-size: 12px !important;
-}
-#pin-btn:hover, #delete-btn:hover {
     background: %(surface)s !important;
     color: %(text)s !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+}
+#pin-btn:hover {
+    background: %(accent_soft)s !important;
+}
+#delete-btn:hover {
+    background: #3a2323 !important;
+    color: #e88 !important;
 }
 
 /* --- Chat column: no card/border around the log, generous side padding,
    Claude-style messages (right-aligned tinted user bubble, bubble-less
    assistant text) --- */
 #chat-header {
-    color: %(subdued)s !important;
-    font-weight: 500 !important;
-    margin: 4px 12px 8px !important;
+    color: %(text)s !important;
+    font-weight: 600 !important;
+    margin: 4px 12px 12px !important;
 }
-#chat-header h3 { margin: 0 !important; font-size: 14px !important; }
+#chat-header h3 { margin: 0 !important; font-size: 20px !important; }
 #chat-disclaimer {
     text-align: center !important;
     font-size: 11px !important;
