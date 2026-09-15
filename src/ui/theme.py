@@ -1,19 +1,21 @@
-"""Warm, borderless, spacious theme modeled on Claude.ai's chat + side-panel
-look: no visible borders on messages/panels (separation via shade and
-whitespace, not lines), soft rounded corners, warm neutral palette instead of
-cool gray, no gradients/shadows."""
+"""Neutral dark theme modeled directly on a Claude desktop app screenshot:
+true near-black gray (not warm-tinted), borderless spacious messages, a
+small right-aligned pill for user turns, bubble-less assistant text, a
+sidebar with dot-bulleted entries and a full-width "+ New" row, and
+collapsible-header side panels. Accent is green per explicit request,
+not the screenshot's blue."""
 
 import gradio as gr
 
-_BG = "#1f1e1d"
-_PANEL = "#282725"
-_SURFACE = "#33312e"
-_BORDER = "#3d3a36"
-_TEXT = "#f2efe9"
-_TEXT_SUBDUED = "#a39d92"
+_BG = "#161616"
+_PANEL = "#1c1c1c"
+_SURFACE = "#262626"
+_BORDER = "#333333"
+_TEXT = "#e9e9e7"
+_TEXT_SUBDUED = "#8f8f8c"
 _ACCENT = "#7a9b6e"
 _ACCENT_HOVER = "#8dae81"
-_ACCENT_SOFT = "#2b3327"
+_ACCENT_SOFT = "#232a20"
 
 THEME = gr.themes.Base(
     font=[gr.themes.GoogleFont("Inter"), "ui-sans-serif", "system-ui", "sans-serif"],
@@ -141,20 +143,25 @@ CSS = """
     padding: 12px !important;
     align-self: flex-start !important;
 }
-#sidebar-header-row {
-    align-items: center !important;
-    margin-bottom: 8px !important;
-}
 #sidebar-header {
-    font-size: 13px !important;
+    font-size: 12px !important;
     color: %(subdued)s !important;
-    padding: 0 8px !important;
+    padding: 12px 8px 4px !important;
     margin: 0 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
 }
+/* Full-width nav-style row, not a small primary pill button */
 #new-project-btn {
-    min-width: 0 !important;
-    background: %(surface)s !important;
+    background: transparent !important;
     color: %(text)s !important;
+    justify-content: flex-start !important;
+    width: 100%% !important;
+    font-weight: 500 !important;
+    padding: 8px !important;
+}
+#new-project-btn:hover {
+    background: %(surface)s !important;
 }
 #projects-list .wrap {
     flex-direction: column !important;
@@ -169,11 +176,24 @@ CSS = """
     font-size: 13px !important;
     color: %(text)s !important;
 }
+/* Small dot bullet before each entry, matching the reference's chat list */
+#projects-list label span::before {
+    content: "" !important;
+    display: inline-block !important;
+    width: 5px !important;
+    height: 5px !important;
+    border-radius: 50%% !important;
+    background: %(subdued)s !important;
+    margin-right: 10px !important;
+}
 #projects-list label:hover {
     background: %(surface)s !important;
 }
 #projects-list label.selected {
-    background: %(accent_soft)s !important;
+    background: %(surface)s !important;
+}
+#projects-list label.selected span::before {
+    background: %(accent)s !important;
 }
 #projects-list input[type="radio"] {
     display: none !important;
@@ -182,6 +202,18 @@ CSS = """
 /* --- Chat column: no card/border around the log, generous side padding,
    Claude-style messages (right-aligned tinted user bubble, bubble-less
    assistant text) --- */
+#chat-header {
+    color: %(subdued)s !important;
+    font-weight: 500 !important;
+    margin: 4px 12px 8px !important;
+}
+#chat-header h3 { margin: 0 !important; font-size: 14px !important; }
+#chat-disclaimer {
+    text-align: center !important;
+    font-size: 11px !important;
+    color: %(subdued)s !important;
+    margin-top: 8px !important;
+}
 .chatbot {
     border: none !important;
     background: transparent !important;
@@ -239,6 +271,17 @@ CSS = """
     border: none !important;
     color: %(text)s !important;
 }
+/* Collapsible section header, matching the reference's "Progress >" / "Context v" rows */
+#versions-accordion {
+    border-top: 1px solid %(border)s !important;
+    margin-top: 12px !important;
+    padding-top: 4px !important;
+}
+#versions-accordion .label-wrap {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: %(text)s !important;
+}
 
 /* --- "Add to manuscript" — a quiet inline control, not a heavy labeled row --- */
 #add-section-row { align-items: center !important; gap: 6px !important; }
@@ -280,6 +323,7 @@ CSS = """
     "border": _BORDER,
     "text": _TEXT,
     "subdued": _TEXT_SUBDUED,
+    "accent": _ACCENT,
     "accent_soft": _ACCENT_SOFT,
 }
 

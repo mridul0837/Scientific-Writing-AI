@@ -48,9 +48,11 @@ src/
                             Google Drive later.
     chat_store.py, manuscript_store.py   save/load JSON and manuscript files through storage.py
   ui/
-    theme.py                warm, borderless Claude-like theme (gr.Theme overrides + CSS + force-dark
-                             JS), passed into demo.launch() in app.py — not into gr.Blocks() (moved
-                             in Gradio 6)
+    theme.py                neutral near-black theme modeled directly on a Claude desktop app
+                             screenshot (true gray, not warm-tinted; borderless spacious messages;
+                             green accent kept by explicit request over the reference's blue),
+                             gr.Theme overrides + CSS + force-dark JS, passed into demo.launch() in
+                             app.py — not into gr.Blocks() (moved in Gradio 6)
     state.py                initial values for gr.State components (Gradio has no session_state)
     layout.py               builds the gr.Blocks layout, wires every event — read this first to see
                              how the pieces connect. Layout: a persistent left sidebar (past projects,

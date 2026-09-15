@@ -44,12 +44,12 @@ def build_layout() -> gr.Blocks:
 
         with gr.Row():
             with gr.Column(scale=1, min_width=200, elem_id="history-sidebar"):
-                with gr.Row(elem_id="sidebar-header-row"):
-                    gr.Markdown("Chat history", elem_id="sidebar-header")
-                    new_project_btn = gr.Button("+ New", size="sm", scale=0, elem_id="new-project-btn")
+                new_project_btn = gr.Button("+  New", elem_id="new-project-btn")
+                gr.Markdown("Chats", elem_id="sidebar-header")
                 projects_radio = gr.Radio(choices=[], show_label=False, elem_id="projects-list")
 
             with gr.Column(scale=5):
+                chat_header = gr.Markdown("", elem_id="chat-header")
                 with gr.Accordion("📎 Files", open=False, elem_id="project-bar"):
                     with gr.Row():
                         with gr.Column():
@@ -87,14 +87,19 @@ def build_layout() -> gr.Blocks:
                                 container=False,
                             )
                             add_section_btn = gr.Button("+ Add to manuscript", variant="secondary", scale=2, size="sm")
+                        gr.Markdown(
+                            "This assistant can make mistakes — check important information.",
+                            elem_id="chat-disclaimer",
+                        )
 
                     with gr.Column(scale=1, elem_id="manuscript-card"):
                         gr.Markdown("📄 Manuscript", elem_id="manuscript-header")
                         manuscript_display = gr.Textbox(
                             show_label=False, lines=18, interactive=False, container=False
                         )
-                        versions_radio = gr.Radio(label="Version history", choices=[])
-                        revert_btn = gr.Button("Revert to selected version", variant="secondary", size="sm")
+                        with gr.Accordion("Version history", open=False, elem_id="versions-accordion"):
+                            versions_radio = gr.Radio(show_label=False, choices=[])
+                            revert_btn = gr.Button("Revert to selected version", variant="secondary", size="sm")
 
         with gr.Column(visible=False, elem_id="question-modal") as question_modal:
             with gr.Column(elem_id="question-modal-card"):
@@ -119,6 +124,7 @@ def build_layout() -> gr.Blocks:
             versions_radio,
             papers_status,
             samples_status,
+            chat_header,
         ]
         project_switch_outputs = [*load_outputs, projects_radio]
 

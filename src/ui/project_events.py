@@ -53,6 +53,7 @@ def _load(project: str):
         gr.update(choices=versions_choices, value=None),  # versions_radio
         "",                                    # papers_status
         "",                                    # samples_status
+        f"### {project}",                      # chat_header
     )
 
 
