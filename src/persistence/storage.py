@@ -46,3 +46,23 @@ def list_projects(user: str) -> list[str]:
     if not user_dir.exists():
         return []
     return sorted(p.name for p in user_dir.iterdir() if p.is_dir())
+
+
+def list_all_projects() -> list[tuple[str, str]]:
+    """All (user, project) pairs across every user, most recently active first."""
+    if not DATA_ROOT.exists():
+        return []
+
+    entries = []
+    for user_dir in DATA_ROOT.iterdir():
+        if not user_dir.is_dir():
+            continue
+        for project_dir_path in user_dir.iterdir():
+            if not project_dir_path.is_dir():
+                continue
+            chat_file = project_dir_path / "Chat" / "chat_history.json"
+            mtime = chat_file.stat().st_mtime if chat_file.exists() else project_dir_path.stat().st_mtime
+            entries.append((mtime, user_dir.name, project_dir_path.name))
+
+    entries.sort(key=lambda e: e[0], reverse=True)
+    return [(user, project) for _, user, project in entries]

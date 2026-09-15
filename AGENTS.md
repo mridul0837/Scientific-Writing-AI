@@ -41,21 +41,26 @@ src/
                             manuscript" path — merges without touching the rest of the document
     versioning.py          in-memory version list management, capped at MAX_VERSIONS (5)
   persistence/
-    storage.py             path resolution + list_users()/list_projects() — the ONLY place that
-                            builds on-disk paths. Keep it that way: it's the seam for swapping in
-                            real Google Drive later.
+    storage.py             path resolution + list_users()/list_projects()/list_all_projects() — the
+                            ONLY place that builds on-disk paths. Keep it that way: it's the seam
+                            for swapping in real Google Drive later.
     chat_store.py, manuscript_store.py   save/load JSON and manuscript files through storage.py
   ui/
-    theme.py                flat dark theme (gr.Theme overrides + CSS + force-dark JS), passed into
-                             demo.launch() in app.py — not into gr.Blocks() (moved in Gradio 6)
+    theme.py                warm, borderless Claude-like theme (gr.Theme overrides + CSS + force-dark
+                             JS), passed into demo.launch() in app.py — not into gr.Blocks() (moved
+                             in Gradio 6)
     state.py                initial values for gr.State components (Gradio has no session_state)
     layout.py               builds the gr.Blocks layout, wires every event — read this first to see
-                             how the pieces connect. Single dashboard: a collapsed "Project & Sources"
-                             accordion (project load + uploads) above an always-visible chat+manuscript row,
-                             plus a question-popup Column pinned over the viewport via CSS
+                             how the pieces connect. Layout: a persistent left sidebar (past projects)
+                             next to the main column (a collapsed "⚙ Project" accordion above an
+                             always-visible chat+manuscript row), plus a question-popup Column pinned
+                             over the viewport via CSS
     chat_events.py          respond() — the streaming generator that drives the whole chat turn;
                              select_option() — fired by a popup button, feeds its label back into respond()
-    upload_events.py, manuscript_events.py, project_events.py
+    project_events.py       load_project() (button) and select_project() (sidebar click) both funnel
+                             through a shared _load() helper; refresh_project_list() repopulates the
+                             sidebar (wired to demo.load() and after every load_project())
+    upload_events.py, manuscript_events.py
 data/                      local persistence root, gitignored — never commit this
 ```
 

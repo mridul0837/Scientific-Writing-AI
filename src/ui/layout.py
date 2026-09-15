@@ -37,49 +37,63 @@ def build_layout() -> gr.Blocks:
         state_manuscript_text = gr.State(ui_state.initial_manuscript_text())
         state_manuscript_versions = gr.State(ui_state.initial_manuscript_versions())
 
-        with gr.Accordion("Project & Sources", open=False):
-            with gr.Row():
-                user_box = gr.Textbox(label="User name")
-                project_box = gr.Textbox(label="Project name")
-                load_btn = gr.Button("Load / Start Project", variant="primary")
-            project_status = gr.Markdown()
-
-            with gr.Row():
-                with gr.Column():
-                    papers_upload = gr.File(
-                        label="Research Papers (1-10, PDF)",
-                        file_count="multiple",
-                        file_types=[".pdf"],
-                    )
-                    papers_status = gr.Markdown()
-
-                with gr.Column():
-                    samples_upload = gr.File(
-                        label="Writing Samples (1-10, PDF/TXT/MD)",
-                        file_count="multiple",
-                        file_types=[".pdf", ".txt", ".md"],
-                    )
-                    samples_status = gr.Markdown()
-
         with gr.Row():
-            with gr.Column(scale=2):
-                chatbot = gr.Chatbot(label="Scientific Writing AI", height=600)
-                msg_box = gr.Textbox(label="Message", placeholder="Ask, write, rewrite, review...")
-                send_btn = gr.Button("Send", variant="primary")
-                with gr.Row():
-                    section_name_box = gr.Textbox(
-                        label="Section name",
-                        placeholder="e.g. Introduction",
-                        scale=3,
-                    )
-                    add_section_btn = gr.Button("Add last reply to manuscript", scale=2)
+            with gr.Column(scale=1, min_width=200, elem_id="history-sidebar"):
+                gr.Markdown("Chat history", elem_id="sidebar-header")
+                projects_radio = gr.Radio(choices=[], show_label=False, elem_id="projects-list")
 
-            with gr.Column(scale=1):
-                manuscript_display = gr.Textbox(
-                    label="Current manuscript", lines=20, interactive=False
-                )
-                versions_radio = gr.Radio(label="Version history (last 5)", choices=[])
-                revert_btn = gr.Button("Revert to selected version")
+            with gr.Column(scale=5):
+                with gr.Accordion("⚙ Project", open=False, elem_id="project-bar"):
+                    with gr.Row():
+                        user_box = gr.Textbox(label="User name", show_label=False, placeholder="User name")
+                        project_box = gr.Textbox(label="Project name", show_label=False, placeholder="Project name")
+                        load_btn = gr.Button("Load", variant="primary", scale=0)
+                    project_status = gr.Markdown()
+
+                    with gr.Row():
+                        with gr.Column():
+                            papers_upload = gr.File(
+                                label="Research papers (1-10, PDF)",
+                                file_count="multiple",
+                                file_types=[".pdf"],
+                            )
+                            papers_status = gr.Markdown()
+
+                        with gr.Column():
+                            samples_upload = gr.File(
+                                label="Writing samples (1-10, PDF/TXT/MD)",
+                                file_count="multiple",
+                                file_types=[".pdf", ".txt", ".md"],
+                            )
+                            samples_status = gr.Markdown()
+
+                with gr.Row():
+                    with gr.Column(scale=2):
+                        chatbot = gr.Chatbot(label="Scientific Writing AI", show_label=False, height=560)
+                        with gr.Row(elem_id="chat-input-row"):
+                            msg_box = gr.Textbox(
+                                show_label=False,
+                                placeholder="Ask, write, rewrite, review...",
+                                scale=6,
+                                container=False,
+                            )
+                            send_btn = gr.Button("↑", variant="primary", scale=0, elem_id="send-btn")
+                        with gr.Row(elem_id="add-section-row"):
+                            section_name_box = gr.Textbox(
+                                show_label=False,
+                                placeholder="Section name (e.g. Introduction)",
+                                scale=3,
+                                container=False,
+                            )
+                            add_section_btn = gr.Button("+ Add to manuscript", variant="secondary", scale=2, size="sm")
+
+                    with gr.Column(scale=1, elem_id="manuscript-card"):
+                        gr.Markdown("📄 Manuscript", elem_id="manuscript-header")
+                        manuscript_display = gr.Textbox(
+                            show_label=False, lines=18, interactive=False, container=False
+                        )
+                        versions_radio = gr.Radio(label="Version history", choices=[])
+                        revert_btn = gr.Button("Revert to selected version", variant="secondary", size="sm")
 
         with gr.Column(visible=False, elem_id="question-modal") as question_modal:
             with gr.Column(elem_id="question-modal-card"):
@@ -90,26 +104,35 @@ def build_layout() -> gr.Blocks:
                 ]
 
         # --- Project ---
+        load_outputs = [
+            state_user_project,
+            state_messages,
+            state_papers,
+            state_samples,
+            state_style_profile,
+            state_vector_collection,
+            state_manuscript_text,
+            state_manuscript_versions,
+            chatbot,
+            manuscript_display,
+            versions_radio,
+            papers_status,
+            samples_status,
+            project_status,
+        ]
         load_btn.click(
             project_events.load_project,
             inputs=[user_box, project_box],
-            outputs=[
-                state_user_project,
-                state_messages,
-                state_papers,
-                state_samples,
-                state_style_profile,
-                state_vector_collection,
-                state_manuscript_text,
-                state_manuscript_versions,
-                chatbot,
-                manuscript_display,
-                versions_radio,
-                papers_status,
-                samples_status,
-                project_status,
-            ],
+            outputs=load_outputs,
+        ).then(project_events.refresh_project_list, outputs=[projects_radio])
+
+        projects_radio.change(
+            project_events.select_project,
+            inputs=[projects_radio],
+            outputs=[*load_outputs, user_box, project_box],
         )
+
+        demo.load(project_events.refresh_project_list, outputs=[projects_radio])
 
         # --- Files ---
         papers_upload.upload(
