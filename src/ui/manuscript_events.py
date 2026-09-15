@@ -34,7 +34,7 @@ def add_last_reply_to_manuscript(section_name, messages, manuscript_text, versio
     if not section_name:
         raise gr.Error("Enter a section name first.")
     if not user_project.get("user") or not user_project.get("project"):
-        raise gr.Error("Load a project first (expand Project & Sources).")
+        raise gr.Error("No project loaded — click + New in the sidebar.")
 
     last_reply = next(
         (m["content"] for m in reversed(messages) if m["role"] == "assistant" and m["content"].strip()),

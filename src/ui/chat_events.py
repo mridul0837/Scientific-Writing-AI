@@ -45,7 +45,7 @@ def respond(user_message, messages, manuscript_text, style_profile, collection, 
         yield messages, messages, manuscript_text, manuscript_text, gr.update(), versions, "", *_NO_MODAL_CHANGE
         return
     if not user_project.get("user") or not user_project.get("project"):
-        raise gr.Error("Load a project first (expand Project & Sources).")
+        raise gr.Error("No project loaded — click + New in the sidebar.")
 
     user, project = user_project["user"], user_project["project"]
 

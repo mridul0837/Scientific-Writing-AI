@@ -1,41 +1,46 @@
-"""Explicit project load — Gradio has no auto-resume, so this is a real button
-click (or a click on a project in the sidebar list)."""
+"""Project loading/creation. Single fixed local user (config.LOCAL_USER) —
+no user-facing account concept, matching the "no multi-user accounts" MVP
+scope. The sidebar (a project name list) replaces manual name entry:
+  - on page load: resume the most recently active project, or create the
+    first one if none exist yet
+  - "+ New" creates a fresh, auto-named project
+  - clicking a sidebar entry loads that project
+"""
+
+import re
 
 import gradio as gr
 
+from config import LOCAL_USER
 from src.manuscript.versioning import format_label
 from src.persistence import chat_store, manuscript_store, storage
 from src.rag.vector_store import new_collection
 from src.ui import state as ui_state
 
-_LABEL_SEP = "  —  "
+_UNTITLED_RE = re.compile(r"^Untitled (\d+)$")
 
 
-def _project_label(user: str, project: str) -> str:
-    return f"{project}{_LABEL_SEP}{user}"
+def _next_untitled_name() -> str:
+    existing = storage.list_projects_by_recency(LOCAL_USER)
+    numbers = [int(m.group(1)) for name in existing if (m := _UNTITLED_RE.match(name))]
+    return f"Untitled {max(numbers, default=0) + 1}"
 
 
-def _parse_label(label: str) -> tuple[str, str]:
-    project, _, user = label.partition(_LABEL_SEP)
-    return user.strip(), project.strip()
+def refresh_project_list(selected: str | None = None):
+    choices = storage.list_projects_by_recency(LOCAL_USER)
+    return gr.update(choices=choices, value=selected)
 
 
-def refresh_project_list():
-    choices = [_project_label(user, project) for user, project in storage.list_all_projects()]
-    return gr.update(choices=choices)
-
-
-def _load(user: str, project: str):
-    messages = chat_store.load(user, project)
-    manuscript_text = manuscript_store.load_current(user, project)
-    versions = manuscript_store.load_versions(user, project)
+def _load(project: str):
+    messages = chat_store.load(LOCAL_USER, project)
+    manuscript_text = manuscript_store.load_current(LOCAL_USER, project)
+    versions = manuscript_store.load_versions(LOCAL_USER, project)
     collection = new_collection()
 
     versions_choices = [format_label(v) for v in versions]
-    status = f"Loaded project **{project}** for **{user}**. Papers/writing samples are session-only and start empty."
 
     return (
-        {"user": user, "project": project},   # state_user_project
+        {"user": LOCAL_USER, "project": project},  # state_user_project
         messages,                              # state_messages
         ui_state.initial_papers(),             # state_papers
         ui_state.initial_samples(),            # state_samples
@@ -48,23 +53,27 @@ def _load(user: str, project: str):
         gr.update(choices=versions_choices, value=None),  # versions_radio
         "",                                    # papers_status
         "",                                    # samples_status
-        status,                                # project_status
     )
 
 
-def load_project(user: str, project: str):
-    user = (user or "").strip()
-    project = (project or "").strip()
-
-    if not user or not project:
-        raise gr.Error("Enter both a user name and a project name.")
-
-    return _load(user, project)
-
-
-def select_project(label: str):
-    if not label:
+def select_project(project: str):
+    if not project:
         raise gr.Error("Select a project from the list.")
+    return (*_load(project), gr.update(value=project))
 
-    user, project = _parse_label(label)
-    return (*_load(user, project), user, project)
+
+def create_new_project():
+    project = _next_untitled_name()
+    storage.project_dir(LOCAL_USER, project)  # creates the on-disk folders
+    return (*_load(project), refresh_project_list(project))
+
+
+def startup():
+    """Fired on page load: resume the most recent project, or start the first one."""
+    projects = storage.list_projects_by_recency(LOCAL_USER)
+    if not projects:
+        project = _next_untitled_name()
+        storage.project_dir(LOCAL_USER, project)
+    else:
+        project = projects[0]
+    return (*_load(project), refresh_project_list(project))

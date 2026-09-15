@@ -22,6 +22,7 @@ This is the **first local MVP**, not the full `Features.md` spec. Built and work
 - Vector store: `chromadb` `EphemeralClient` (in-memory, per-session, never written to disk)
 - PDF parsing: `pypdf`
 - No RAG/agent framework (no LangChain/LlamaIndex) — everything is hand-rolled and direct. Keep it that way unless the scope genuinely outgrows it; don't introduce a framework for its own sake.
+- No user-facing account system — `config.LOCAL_USER` (defaults to the OS username) is the one fixed folder name under `DATA_ROOT`. There is no username/project-name entry in the UI at all; projects are entirely sidebar-driven (see `project_events.py`). Don't reintroduce manual name entry — multi-user accounts are explicitly out of scope.
 
 ## Project structure
 
@@ -41,9 +42,9 @@ src/
                             manuscript" path — merges without touching the rest of the document
     versioning.py          in-memory version list management, capped at MAX_VERSIONS (5)
   persistence/
-    storage.py             path resolution + list_users()/list_projects()/list_all_projects() — the
-                            ONLY place that builds on-disk paths. Keep it that way: it's the seam
-                            for swapping in real Google Drive later.
+    storage.py             path resolution + list_projects_by_recency() — the ONLY place that builds
+                            on-disk paths. Keep it that way: it's the seam for swapping in real
+                            Google Drive later.
     chat_store.py, manuscript_store.py   save/load JSON and manuscript files through storage.py
   ui/
     theme.py                warm, borderless Claude-like theme (gr.Theme overrides + CSS + force-dark
@@ -51,15 +52,16 @@ src/
                              in Gradio 6)
     state.py                initial values for gr.State components (Gradio has no session_state)
     layout.py               builds the gr.Blocks layout, wires every event — read this first to see
-                             how the pieces connect. Layout: a persistent left sidebar (past projects)
-                             next to the main column (a collapsed "⚙ Project" accordion above an
-                             always-visible chat+manuscript row), plus a question-popup Column pinned
-                             over the viewport via CSS
+                             how the pieces connect. Layout: a persistent left sidebar (past projects,
+                             "+ New" button) next to the main column (a collapsed "📎 Files" accordion
+                             for uploads above an always-visible chat+manuscript row), plus a
+                             question-popup Column pinned over the viewport via CSS
     chat_events.py          respond() — the streaming generator that drives the whole chat turn;
                              select_option() — fired by a popup button, feeds its label back into respond()
-    project_events.py       load_project() (button) and select_project() (sidebar click) both funnel
-                             through a shared _load() helper; refresh_project_list() repopulates the
-                             sidebar (wired to demo.load() and after every load_project())
+    project_events.py       startup() (demo.load — resume most recent project or create the first
+                             one), create_new_project() ("+ New"), select_project() (sidebar click);
+                             all three funnel through a shared _load() helper and return a sidebar
+                             refresh alongside it
     upload_events.py, manuscript_events.py
 data/                      local persistence root, gitignored — never commit this
 ```
@@ -107,7 +109,7 @@ Opens at `http://127.0.0.1:7860`.
 
 There is no automated test suite yet — verify manually:
 
-1. Launch the app, expand "Project & Sources," load a project — confirms `data/Scientific-Writing-AI/<user>/<project>/{Manuscript,Chat,Versions}` gets created.
+1. Launch the app — confirms a project auto-creates/resumes on load and `data/Scientific-Writing-AI/<LOCAL_USER>/<project>/{Manuscript,Chat,Versions}` gets created; click "+ New" to start a second one and confirm both appear in the sidebar, most recent first.
 2. Upload a PDF paper, ask a question about its content — confirms parsing/chunking/embedding/retrieval.
 3. Upload a writing sample, ask for a rewrite "in my style" — confirms style extraction.
 4. Ask the model to write something (e.g. "write the introduction") — confirms the manuscript panel does **not** change (plain chat only).

@@ -1,17 +1,22 @@
 """Build the Gradio Blocks layout and wire all events.
 
-Single-dashboard layout: project setup and file uploads live in a collapsed
-accordion (secondary, out of the way); chat and manuscript are always visible
-side by side as the primary writing workspace.
+No user-facing project-name entry: there's a single fixed local user
+(config.LOCAL_USER), and projects are named/switched entirely through the
+sidebar — resumed automatically on page load, created via "+ New", switched
+by clicking an entry. File uploads live in a collapsed accordion (secondary,
+out of the way); chat and manuscript are always visible side by side as the
+primary writing workspace.
 
 Event wiring:
-  Load Project button   -> project_events.load_project
-  Papers .upload()      -> upload_events.process_papers
-  Samples .upload()     -> upload_events.process_samples -> (.then) upload_events.learn_style
-  Send click / Enter    -> chat_events.respond (generator, streaming)
-  Revert button         -> manuscript_events.revert_version
-  Add-to-manuscript btn -> manuscript_events.add_last_reply_to_manuscript
-  Question popup option -> chat_events.select_option -> (.then) chat_events.respond
+  demo.load()            -> project_events.startup (resume most recent, or create the first one)
+  "+ New" button         -> project_events.create_new_project
+  Sidebar entry click    -> project_events.select_project
+  Papers .upload()       -> upload_events.process_papers
+  Samples .upload()      -> upload_events.process_samples -> (.then) upload_events.learn_style
+  Send click / Enter     -> chat_events.respond (generator, streaming)
+  Revert button          -> manuscript_events.revert_version
+  Add-to-manuscript btn  -> manuscript_events.add_last_reply_to_manuscript
+  Question popup option  -> chat_events.select_option -> (.then) chat_events.respond
 
 The question popup (src/questions.py protocol) has no native Gradio Modal in
 this version, so it's a gr.Column toggled visible=True/False and pinned to
@@ -39,17 +44,13 @@ def build_layout() -> gr.Blocks:
 
         with gr.Row():
             with gr.Column(scale=1, min_width=200, elem_id="history-sidebar"):
-                gr.Markdown("Chat history", elem_id="sidebar-header")
+                with gr.Row(elem_id="sidebar-header-row"):
+                    gr.Markdown("Chat history", elem_id="sidebar-header")
+                    new_project_btn = gr.Button("+ New", size="sm", scale=0, elem_id="new-project-btn")
                 projects_radio = gr.Radio(choices=[], show_label=False, elem_id="projects-list")
 
             with gr.Column(scale=5):
-                with gr.Accordion("⚙ Project", open=False, elem_id="project-bar"):
-                    with gr.Row():
-                        user_box = gr.Textbox(label="User name", show_label=False, placeholder="User name")
-                        project_box = gr.Textbox(label="Project name", show_label=False, placeholder="Project name")
-                        load_btn = gr.Button("Load", variant="primary", scale=0)
-                    project_status = gr.Markdown()
-
+                with gr.Accordion("📎 Files", open=False, elem_id="project-bar"):
                     with gr.Row():
                         with gr.Column():
                             papers_upload = gr.File(
@@ -118,21 +119,18 @@ def build_layout() -> gr.Blocks:
             versions_radio,
             papers_status,
             samples_status,
-            project_status,
         ]
-        load_btn.click(
-            project_events.load_project,
-            inputs=[user_box, project_box],
-            outputs=load_outputs,
-        ).then(project_events.refresh_project_list, outputs=[projects_radio])
+        project_switch_outputs = [*load_outputs, projects_radio]
+
+        demo.load(project_events.startup, outputs=project_switch_outputs)
+
+        new_project_btn.click(project_events.create_new_project, outputs=project_switch_outputs)
 
         projects_radio.change(
             project_events.select_project,
             inputs=[projects_radio],
-            outputs=[*load_outputs, user_box, project_box],
+            outputs=project_switch_outputs,
         )
-
-        demo.load(project_events.refresh_project_list, outputs=[projects_radio])
 
         # --- Files ---
         papers_upload.upload(

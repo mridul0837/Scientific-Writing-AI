@@ -140,11 +140,20 @@ CSS = """
     padding: 12px !important;
     align-self: flex-start !important;
 }
+#sidebar-header-row {
+    align-items: center !important;
+    margin-bottom: 8px !important;
+}
 #sidebar-header {
     font-size: 13px !important;
     color: %(subdued)s !important;
-    margin-bottom: 8px !important;
     padding: 0 8px !important;
+    margin: 0 !important;
+}
+#new-project-btn {
+    min-width: 0 !important;
+    background: %(surface)s !important;
+    color: %(text)s !important;
 }
 #projects-list .wrap {
     flex-direction: column !important;

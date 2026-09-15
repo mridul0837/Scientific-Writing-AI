@@ -1,9 +1,17 @@
+import getpass
 from pathlib import Path
 
 CHAT_MODEL = "qwen2.5:7b-instruct"
 EMBED_MODEL = "nomic-embed-text"
 
 DATA_ROOT = Path(__file__).parent / "data" / "Scientific-Writing-AI"
+
+# Single-user local tool (multi-user accounts are out of scope for this MVP) —
+# one fixed folder name under DATA_ROOT instead of a UI field to fill in.
+try:
+    LOCAL_USER = getpass.getuser()
+except Exception:
+    LOCAL_USER = "local"
 
 CHUNK_SIZE = 1200
 CHUNK_OVERLAP = 200

@@ -35,34 +35,19 @@ def versions_index_path(user: str, project: str) -> Path:
     return versions_dir(user, project) / "versions_index.json"
 
 
-def list_users() -> list[str]:
-    if not DATA_ROOT.exists():
-        return []
-    return sorted(p.name for p in DATA_ROOT.iterdir() if p.is_dir())
-
-
-def list_projects(user: str) -> list[str]:
+def list_projects_by_recency(user: str) -> list[str]:
+    """This user's project names, most recently active first."""
     user_dir = DATA_ROOT / user
     if not user_dir.exists():
         return []
-    return sorted(p.name for p in user_dir.iterdir() if p.is_dir())
-
-
-def list_all_projects() -> list[tuple[str, str]]:
-    """All (user, project) pairs across every user, most recently active first."""
-    if not DATA_ROOT.exists():
-        return []
 
     entries = []
-    for user_dir in DATA_ROOT.iterdir():
-        if not user_dir.is_dir():
+    for project_dir_path in user_dir.iterdir():
+        if not project_dir_path.is_dir():
             continue
-        for project_dir_path in user_dir.iterdir():
-            if not project_dir_path.is_dir():
-                continue
-            chat_file = project_dir_path / "Chat" / "chat_history.json"
-            mtime = chat_file.stat().st_mtime if chat_file.exists() else project_dir_path.stat().st_mtime
-            entries.append((mtime, user_dir.name, project_dir_path.name))
+        chat_file = project_dir_path / "Chat" / "chat_history.json"
+        mtime = chat_file.stat().st_mtime if chat_file.exists() else project_dir_path.stat().st_mtime
+        entries.append((mtime, project_dir_path.name))
 
     entries.sort(key=lambda e: e[0], reverse=True)
-    return [(user, project) for _, user, project in entries]
+    return [project for _, project in entries]
