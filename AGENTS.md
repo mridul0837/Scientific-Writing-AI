@@ -23,6 +23,7 @@ This is the **first local MVP**, not the full `Features.md` spec. Built and work
 - PDF parsing: `pypdf`
 - No RAG/agent framework (no LangChain/LlamaIndex) — everything is hand-rolled and direct. Keep it that way unless the scope genuinely outgrows it; don't introduce a framework for its own sake.
 - No user-facing account system — `config.LOCAL_USER` (defaults to the OS username) is the one fixed folder name under `DATA_ROOT`. There is no username/project-name entry in the UI at all; projects are entirely sidebar-driven (see `project_events.py`). Don't reintroduce manual name entry — multi-user accounts are explicitly out of scope.
+- On this dev machine, `qwen2.5:7b-instruct` doesn't fully fit in the RTX 3060 Laptop's 6GB VRAM (`ollama ps` shows an ~18%/82% CPU/GPU split) — inference is inherently slower than a fully-GPU model, and that's a hardware limit, not an app bug. Ollama's default `keep_alive` (5 min) was also unloading the model between messages during normal chat pauses, costing a measured ~7s reload on the next message; `config.OLLAMA_KEEP_ALIVE` ("30m") fixes that specific cost. If someone reports slowness, check `ollama ps` for the CPU/GPU split and whether the model is still loaded before assuming it's a code problem.
 
 ## Project structure
 

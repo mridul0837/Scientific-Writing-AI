@@ -4,6 +4,11 @@ from pathlib import Path
 CHAT_MODEL = "qwen2.5:7b-instruct"
 EMBED_MODEL = "nomic-embed-text"
 
+# Ollama's default keep_alive (5 min) unloads the model between messages during
+# normal back-and-forth chatting, costing a ~7s reload on the next message
+# (measured). Keep it warm for the length of a realistic working session instead.
+OLLAMA_KEEP_ALIVE = "30m"
+
 DATA_ROOT = Path(__file__).parent / "data" / "Scientific-Writing-AI"
 
 # Single-user local tool (multi-user accounts are out of scope for this MVP) —

@@ -7,12 +7,14 @@ only requires changing this file.
 
 import ollama
 
-from config import CHAT_MODEL, EMBED_MODEL
+from config import CHAT_MODEL, EMBED_MODEL, OLLAMA_KEEP_ALIVE
 
 
 def chat_stream(messages: list[dict]):
     """Yield successive text chunks from a streaming chat completion."""
-    stream = ollama.chat(model=CHAT_MODEL, messages=messages, stream=True)
+    stream = ollama.chat(
+        model=CHAT_MODEL, messages=messages, stream=True, keep_alive=OLLAMA_KEEP_ALIVE
+    )
     for part in stream:
         content = part.get("message", {}).get("content", "")
         if content:
@@ -20,5 +22,5 @@ def chat_stream(messages: list[dict]):
 
 
 def embed(text: str) -> list[float]:
-    response = ollama.embeddings(model=EMBED_MODEL, prompt=text)
+    response = ollama.embeddings(model=EMBED_MODEL, prompt=text, keep_alive=OLLAMA_KEEP_ALIVE)
     return response["embedding"]
