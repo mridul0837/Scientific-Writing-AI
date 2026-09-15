@@ -163,11 +163,11 @@ CSS = """
 #new-project-btn:hover {
     background: %(surface)s !important;
 }
-#projects-list .wrap {
+#projects-list .wrap, #pinned-list .wrap {
     flex-direction: column !important;
     gap: 2px !important;
 }
-#projects-list label {
+#projects-list label, #pinned-list label {
     background: transparent !important;
     border: none !important;
     border-radius: 10px !important;
@@ -177,7 +177,7 @@ CSS = """
     color: %(text)s !important;
 }
 /* Small dot bullet before each entry, matching the reference's chat list */
-#projects-list label span::before {
+#projects-list label span::before, #pinned-list label span::before {
     content: "" !important;
     display: inline-block !important;
     width: 5px !important;
@@ -186,17 +186,35 @@ CSS = """
     background: %(subdued)s !important;
     margin-right: 10px !important;
 }
-#projects-list label:hover {
+#projects-list label:hover, #pinned-list label:hover {
     background: %(surface)s !important;
 }
-#projects-list label.selected {
+#projects-list label.selected, #pinned-list label.selected {
     background: %(surface)s !important;
 }
-#projects-list label.selected span::before {
+#projects-list label.selected span::before, #pinned-list label.selected span::before {
     background: %(accent)s !important;
 }
-#projects-list input[type="radio"] {
+#projects-list input[type="radio"], #pinned-list input[type="radio"] {
     display: none !important;
+}
+#pinned-section { margin-bottom: 4px !important; }
+
+/* Pin/Delete row acting on the currently loaded project */
+#chat-actions-row {
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+    border-top: 1px solid %(border)s !important;
+    gap: 6px !important;
+}
+#pin-btn, #delete-btn {
+    background: transparent !important;
+    color: %(subdued)s !important;
+    font-size: 12px !important;
+}
+#pin-btn:hover, #delete-btn:hover {
+    background: %(surface)s !important;
+    color: %(text)s !important;
 }
 
 /* --- Chat column: no card/border around the log, generous side padding,
@@ -238,15 +256,15 @@ CSS = """
 #chat-input-row {
     background: %(surface)s !important;
     border-radius: 26px !important;
-    padding: 6px 6px 6px 20px !important;
+    padding: 6px !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 4px !important;
 }
 #chat-input-row textarea, #chat-input-row input {
     background: transparent !important;
     border: none !important;
 }
-#send-btn {
+#send-btn, #attach-btn {
     min-width: 42px !important;
     width: 42px !important;
     height: 42px !important;
@@ -254,6 +272,21 @@ CSS = """
     padding: 0 !important;
     flex: none !important;
 }
+#attach-btn {
+    background: transparent !important;
+    color: %(subdued)s !important;
+}
+#attach-btn:hover {
+    background: %(border)s !important;
+    color: %(text)s !important;
+}
+#attach-status {
+    font-size: 12px !important;
+    color: %(subdued)s !important;
+    margin: 4px 12px 0 !important;
+    min-height: 0 !important;
+}
+#attach-status:empty { display: none !important; }
 
 /* --- Manuscript panel styled as a Claude-artifact-style card --- */
 #manuscript-card {
@@ -287,18 +320,18 @@ CSS = """
 #add-section-row { align-items: center !important; gap: 6px !important; }
 #add-section-row input { background: %(surface)s !important; border-radius: 14px !important; }
 
-/* --- Question popup: no native Gradio Modal in this version, so this is a
-   Column pinned over the viewport and toggled visible=True/False. --- */
-#question-modal {
+/* --- Popups: no native Gradio Modal in this version, so each is a Column
+   pinned over the viewport and toggled visible=True/False. --- */
+#question-modal, #delete-modal {
     position: fixed !important;
     inset: 0 !important;
-    background: rgba(20, 18, 16, 0.7) !important;
+    background: rgba(0, 0, 0, 0.7) !important;
     z-index: 1000 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
 }
-#question-modal-card {
+#question-modal-card, #delete-modal-card {
     background: %(panel)s !important;
     border-radius: 20px !important;
     padding: 28px !important;

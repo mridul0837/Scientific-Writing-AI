@@ -10,17 +10,21 @@ primary writing workspace.
 Event wiring:
   demo.load()            -> project_events.startup (resume most recent, or create the first one)
   "+ New" button         -> project_events.create_new_project
-  Sidebar entry click    -> project_events.select_project
-  Papers .upload()       -> upload_events.process_papers
-  Samples .upload()      -> upload_events.process_samples -> (.then) upload_events.learn_style
+  Sidebar entry click    -> project_events.select_project (pinned or unpinned list)
+  Pin/Unpin button       -> project_events.toggle_pin
+  Delete button          -> project_events.request_delete -> (confirm) confirm_delete / (cancel) cancel_delete
+  Chat-bar attach button -> upload_events.process_papers (papers only; writing samples stay in Files)
+  Papers/Samples .upload()  (Files section) -> upload_events.process_papers / process_samples -> (.then) learn_style
   Send click / Enter     -> chat_events.respond (generator, streaming)
   Revert button          -> manuscript_events.revert_version
   Add-to-manuscript btn  -> manuscript_events.add_last_reply_to_manuscript
   Question popup option  -> chat_events.select_option -> (.then) chat_events.respond
 
-The question popup (src/questions.py protocol) has no native Gradio Modal in
-this version, so it's a gr.Column toggled visible=True/False and pinned to
-the viewport via CSS (see src/ui/theme.py's #question-modal rule).
+Two popups have no native Gradio Modal in this version, so each is a
+gr.Column toggled visible=True/False and pinned to the viewport via CSS
+(see src/ui/theme.py's #question-modal / #delete-modal rules): the
+clarifying-question popup (src/questions.py protocol) and the delete
+confirmation.
 """
 
 import gradio as gr
@@ -45,8 +49,17 @@ def build_layout() -> gr.Blocks:
         with gr.Row():
             with gr.Column(scale=1, min_width=200, elem_id="history-sidebar"):
                 new_project_btn = gr.Button("+  New", elem_id="new-project-btn")
+
+                with gr.Column(visible=False, elem_id="pinned-section") as pinned_section:
+                    gr.Markdown("Pinned", elem_id="sidebar-header")
+                    pinned_radio = gr.Radio(choices=[], show_label=False, elem_id="pinned-list")
+
                 gr.Markdown("Chats", elem_id="sidebar-header")
                 projects_radio = gr.Radio(choices=[], show_label=False, elem_id="projects-list")
+
+                with gr.Row(elem_id="chat-actions-row"):
+                    pin_btn = gr.Button("📌 Pin", size="sm", elem_id="pin-btn")
+                    delete_btn = gr.Button("🗑 Delete", size="sm", elem_id="delete-btn")
 
             with gr.Column(scale=5):
                 chat_header = gr.Markdown("", elem_id="chat-header")
@@ -72,6 +85,13 @@ def build_layout() -> gr.Blocks:
                     with gr.Column(scale=2):
                         chatbot = gr.Chatbot(label="Scientific Writing AI", show_label=False, height=560)
                         with gr.Row(elem_id="chat-input-row"):
+                            attach_btn = gr.UploadButton(
+                                "📎",
+                                file_count="multiple",
+                                file_types=[".pdf"],
+                                scale=0,
+                                elem_id="attach-btn",
+                            )
                             msg_box = gr.Textbox(
                                 show_label=False,
                                 placeholder="Ask, write, rewrite, review...",
@@ -79,6 +99,7 @@ def build_layout() -> gr.Blocks:
                                 container=False,
                             )
                             send_btn = gr.Button("↑", variant="primary", scale=0, elem_id="send-btn")
+                        attach_status = gr.Markdown(elem_id="attach-status")
                         with gr.Row(elem_id="add-section-row"):
                             section_name_box = gr.Textbox(
                                 show_label=False,
@@ -109,6 +130,13 @@ def build_layout() -> gr.Blocks:
                     for _ in range(MAX_ASK_OPTIONS)
                 ]
 
+        with gr.Column(visible=False, elem_id="delete-modal") as delete_modal:
+            with gr.Column(elem_id="delete-modal-card"):
+                delete_confirm_text = gr.Markdown()
+                with gr.Row():
+                    cancel_delete_btn = gr.Button("Cancel", variant="secondary")
+                    confirm_delete_btn = gr.Button("Delete permanently", variant="stop")
+
         # --- Project ---
         load_outputs = [
             state_user_project,
@@ -125,17 +153,41 @@ def build_layout() -> gr.Blocks:
             papers_status,
             samples_status,
             chat_header,
+            pin_btn,
         ]
-        project_switch_outputs = [*load_outputs, projects_radio]
+        project_switch_outputs = [*load_outputs, pinned_section, pinned_radio, projects_radio]
 
         demo.load(project_events.startup, outputs=project_switch_outputs)
 
         new_project_btn.click(project_events.create_new_project, outputs=project_switch_outputs)
 
+        pinned_radio.change(
+            project_events.select_project,
+            inputs=[pinned_radio],
+            outputs=project_switch_outputs,
+        )
         projects_radio.change(
             project_events.select_project,
             inputs=[projects_radio],
             outputs=project_switch_outputs,
+        )
+
+        pin_btn.click(
+            project_events.toggle_pin,
+            inputs=[state_user_project],
+            outputs=[pinned_section, pinned_radio, projects_radio, pin_btn],
+        )
+
+        delete_btn.click(
+            project_events.request_delete,
+            inputs=[state_user_project],
+            outputs=[delete_modal, delete_confirm_text],
+        )
+        cancel_delete_btn.click(project_events.cancel_delete, outputs=[delete_modal])
+        confirm_delete_btn.click(
+            project_events.confirm_delete,
+            inputs=[state_user_project],
+            outputs=[*project_switch_outputs, delete_modal],
         )
 
         # --- Files ---
@@ -153,6 +205,12 @@ def build_layout() -> gr.Blocks:
             upload_events.learn_style,
             inputs=[state_samples, samples_status],
             outputs=[state_style_profile, samples_status],
+        )
+
+        attach_btn.upload(
+            upload_events.process_papers,
+            inputs=[attach_btn, state_papers, state_vector_collection],
+            outputs=[state_papers, state_vector_collection, attach_status],
         )
 
         # --- Chat ---

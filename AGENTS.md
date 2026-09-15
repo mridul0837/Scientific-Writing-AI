@@ -55,17 +55,20 @@ src/
                              app.py — not into gr.Blocks() (moved in Gradio 6)
     state.py                initial values for gr.State components (Gradio has no session_state)
     layout.py               builds the gr.Blocks layout, wires every event — read this first to see
-                             how the pieces connect. Layout: a persistent left sidebar (past projects,
-                             "+ New" button) next to the main column (a collapsed "📎 Files" accordion
-                             for uploads above an always-visible chat+manuscript row), plus a
-                             question-popup Column pinned over the viewport via CSS
+                             how the pieces connect. Layout: a persistent left sidebar (Pinned section
+                             + Chats list, "+ New" button, Pin/Delete row) next to the main column (a
+                             collapsed "📎 Files" accordion for uploads above an always-visible
+                             chat+manuscript row), plus two popup Columns pinned over the viewport
+                             via CSS (clarifying-question, delete-confirmation)
     chat_events.py          respond() — the streaming generator that drives the whole chat turn;
                              select_option() — fired by a popup button, feeds its label back into respond()
     project_events.py       startup() (demo.load — resume most recent project or create the first
-                             one), create_new_project() ("+ New"), select_project() (sidebar click);
-                             all three funnel through a shared _load() helper and return a sidebar
-                             refresh alongside it
-    upload_events.py, manuscript_events.py
+                             one), create_new_project() ("+ New"), select_project() (sidebar click),
+                             toggle_pin(), request_delete()/cancel_delete()/confirm_delete() — all
+                             funnel through a shared _load() helper and refresh_project_lists()
+    upload_events.py        process_papers() also backs the chat-bar attach button (gr.UploadButton),
+                             not just the Files-section upload — same handler, two entry points
+    manuscript_events.py
 data/                      local persistence root, gitignored — never commit this
 ```
 
@@ -80,6 +83,12 @@ Chat and the manuscript are deliberately decoupled — a "write X" request is an
 ## Clarifying-question popup
 
 When the model hits a real fork it can't resolve on its own (not an open-ended question — a small, concrete set of options), it can emit `<<<ASK_START>>>Question: ...\nOptions: a | b | c<<<ASK_END>>>` instead of plain text (see the prompt in `prompt_builder.py`). `src/questions.py` parses this; `chat_events._question_modal_outputs()` turns it into a popup: a `gr.Column` (`#question-modal` in `layout.py`) toggled visible, pinned over the viewport via CSS in `theme.py` (Gradio has no native Modal component in this version), with up to `MAX_ASK_OPTIONS` (4) buttons labeled from the parsed options. Clicking one (`chat_events.select_option`) fills the message box with that option's text and closes the popup, then chains via `.then()` into `chat_events.respond` as if the user had typed and sent it. `Column`/`Button` outputs don't appear in `gradio_client`'s API view (`skip_api=True` on both) — that's a client-API-testing limitation, not a bug; verify this path against the real browser, or by checking `src/questions.py`'s parsing directly and trusting Gradio's very standard visible-toggle idiom for the rest.
+
+## Sidebar: pin, delete, attach
+
+- **Pin/Delete act on the currently loaded project**, not on a separately-selected-but-not-open sidebar item — there's only one "current" project (`state_user_project`) at a time, which keeps the Gradio wiring simple (no per-row buttons inside a `gr.Radio`, which isn't practical). Pinned projects show in a `Pinned` section above `Chats`, ordered by pin order (not recency); the section is hidden entirely (`pinned_section` visibility) when nothing is pinned. Pin state lives in `data/Scientific-Writing-AI/<user>/pinned.json` (`storage.load_pinned()`/`save_pinned()`) — a user-level file, not inside any project folder.
+- **Delete is a real two-step confirmation** (`project_events.request_delete` → `confirm_delete`/`cancel_delete`), using the same visible-toggle popup pattern as the clarifying-question modal (`#delete-modal` in `theme.py`). `storage.delete_project()` does an actual `shutil.rmtree` — there is no undo. After deleting the currently-open project, `confirm_delete()` falls back to the next most recent remaining project, or creates a fresh one if none are left. Don't make delete a single click — that was an explicit requirement, not just caution.
+- **Chat-bar attach** (`attach_btn`, a `gr.UploadButton`) is deliberately scoped to papers/RAG only, not writing samples — attaching a reference mid-conversation is the natural in-chat action; writing-style samples stay a one-time setup step in the Files accordion. It calls the exact same `upload_events.process_papers()` as the Files-section upload, just from a second entry point, so the two never drift apart.
 
 ## Conventions
 
@@ -122,8 +131,11 @@ There is no automated test suite yet — verify manually:
 8. Make 6+ additions — confirms only the last 5 versions are kept.
 9. Revert to an older version — confirms it restores correctly and is itself recorded as a new version.
 10. Restart the app, reload the browser, reload the same project — confirms chat/manuscript/versions reload from disk, and papers/samples do **not** persist.
+11. Click the attach icon in the chat bar and pick a PDF, then ask about its content — confirms it's usable as RAG context the same as a Files-section upload.
+12. Pin a project — confirms a "Pinned" section appears above "Chats" and the button relabels to "Unpin"; unpin — confirms the section disappears again once empty.
+13. Click "Delete" on the open project — confirms a confirmation popup appears and nothing is removed until you click "Delete permanently"; confirm — confirms the folder is gone from disk and another project (or a fresh one) loads automatically.
 
-For quick non-UI checks, `gradio_client.Client` can hit the app's endpoints directly (`/load_project`, `/respond`, `/add_last_reply_to_manuscript`, `/revert_version`, etc.) without a browser — see git history for example usage.
+For quick non-UI checks, `gradio_client.Client` can hit the app's endpoints directly (`/startup`, `/respond`, `/toggle_pin`, `/confirm_delete`, `/add_last_reply_to_manuscript`, etc.) without a browser — see git history for example usage.
 
 ## Git
 

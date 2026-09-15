@@ -6,6 +6,8 @@ Kept as the single seam to swap in real Google Drive API storage later —
 every other module reaches disk only through these functions.
 """
 
+import json
+import shutil
 from pathlib import Path
 
 from config import DATA_ROOT
@@ -51,3 +53,28 @@ def list_projects_by_recency(user: str) -> list[str]:
 
     entries.sort(key=lambda e: e[0], reverse=True)
     return [project for _, project in entries]
+
+
+def _pinned_path(user: str) -> Path:
+    return DATA_ROOT / user / "pinned.json"
+
+
+def load_pinned(user: str) -> list[str]:
+    path = _pinned_path(user)
+    if not path.exists():
+        return []
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def save_pinned(user: str, pinned: list[str]) -> None:
+    path = _pinned_path(user)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(pinned, indent=2), encoding="utf-8")
+
+
+def delete_project(user: str, project: str) -> None:
+    shutil.rmtree(project_dir(user, project), ignore_errors=True)
+    pinned = load_pinned(user)
+    if project in pinned:
+        pinned.remove(project)
+        save_pinned(user, pinned)
