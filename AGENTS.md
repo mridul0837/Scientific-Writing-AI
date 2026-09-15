@@ -34,6 +34,7 @@ src/
   prompt_builder.py       assembles the per-turn messages list (system + style + manuscript + RAG + history)
   rag/                    pdf_parser.py, chunker.py, vector_store.py, retriever.py
   style/style_profile.py  LLM-based style summarization from writing samples
+  questions.py             parses the <<<ASK_START>>>/<<<ASK_END>>> clarifying-question popup protocol
   manuscript/
     manuscript_state.py   parses the <<<MANUSCRIPT_START>>>/<<<MANUSCRIPT_END>>> full-compile marker
     sections.py            finds/replaces one markdown-heading section, for the incremental "add to
@@ -50,8 +51,10 @@ src/
     state.py                initial values for gr.State components (Gradio has no session_state)
     layout.py               builds the gr.Blocks layout, wires every event — read this first to see
                              how the pieces connect. Single dashboard: a collapsed "Project & Sources"
-                             accordion (project load + uploads) above an always-visible chat+manuscript row
-    chat_events.py          respond() — the streaming generator that drives the whole chat turn
+                             accordion (project load + uploads) above an always-visible chat+manuscript row,
+                             plus a question-popup Column pinned over the viewport via CSS
+    chat_events.py          respond() — the streaming generator that drives the whole chat turn;
+                             select_option() — fired by a popup button, feeds its label back into respond()
     upload_events.py, manuscript_events.py, project_events.py
 data/                      local persistence root, gitignored — never commit this
 ```
@@ -63,6 +66,10 @@ Chat and the manuscript are deliberately decoupled — a "write X" request is an
 - **Default: plain chat.** Asking the model to write, rewrite, or improve something (a paragraph, a section, anything) just gets a normal chat reply. It does **not** touch the manuscript. This was a deliberate correction — an earlier version treated any writing-sounding request as an implicit edit, and the 7B model started rewriting sections unprompted (even on pure feedback questions like "what's missing here?"). Do not reintroduce silent/inferred edits.
 - **Explicit full compile.** Only when the user clearly asks to see/get/compile the manuscript itself (e.g. "show me the manuscript") does the model emit the `<<<MANUSCRIPT_START>>>...<<<MANUSCRIPT_END>>>` block, assembling one full document from the conversation. `manuscript_state.split_reply_and_edit()` parses this.
 - **Explicit incremental add.** The primary way the manuscript actually gets built: the user reviews a chat reply, names a section in the UI, and clicks "Add last reply to manuscript" (`manuscript_events.add_last_reply_to_manuscript`). That takes the **exact, verbatim** text of the last assistant message — no re-generation, so there's no risk of the model drifting from what the user already approved — and merges it into the manuscript at that heading via `sections.replace_or_append_section()` (replacing an existing section with the same heading, or appending a new one). This is the "build it part by part" path the user asked for, instead of regenerating the whole manuscript on every change.
+
+## Clarifying-question popup
+
+When the model hits a real fork it can't resolve on its own (not an open-ended question — a small, concrete set of options), it can emit `<<<ASK_START>>>Question: ...\nOptions: a | b | c<<<ASK_END>>>` instead of plain text (see the prompt in `prompt_builder.py`). `src/questions.py` parses this; `chat_events._question_modal_outputs()` turns it into a popup: a `gr.Column` (`#question-modal` in `layout.py`) toggled visible, pinned over the viewport via CSS in `theme.py` (Gradio has no native Modal component in this version), with up to `MAX_ASK_OPTIONS` (4) buttons labeled from the parsed options. Clicking one (`chat_events.select_option`) fills the message box with that option's text and closes the popup, then chains via `.then()` into `chat_events.respond` as if the user had typed and sent it. `Column`/`Button` outputs don't appear in `gradio_client`'s API view (`skip_api=True` on both) — that's a client-API-testing limitation, not a bug; verify this path against the real browser, or by checking `src/questions.py`'s parsing directly and trusting Gradio's very standard visible-toggle idiom for the rest.
 
 ## Conventions
 

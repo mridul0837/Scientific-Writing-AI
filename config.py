@@ -13,3 +13,8 @@ MAX_VERSIONS = 5
 
 MANUSCRIPT_START_MARKER = "<<<MANUSCRIPT_START>>>"
 MANUSCRIPT_END_MARKER = "<<<MANUSCRIPT_END>>>"
+
+# Multiple-choice clarifying question, rendered as a popup with option buttons.
+ASK_START_MARKER = "<<<ASK_START>>>"
+ASK_END_MARKER = "<<<ASK_END>>>"
+MAX_ASK_OPTIONS = 4

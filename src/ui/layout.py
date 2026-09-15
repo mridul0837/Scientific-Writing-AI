@@ -11,10 +11,16 @@ Event wiring:
   Send click / Enter    -> chat_events.respond (generator, streaming)
   Revert button         -> manuscript_events.revert_version
   Add-to-manuscript btn -> manuscript_events.add_last_reply_to_manuscript
+  Question popup option -> chat_events.select_option -> (.then) chat_events.respond
+
+The question popup (src/questions.py protocol) has no native Gradio Modal in
+this version, so it's a gr.Column toggled visible=True/False and pinned to
+the viewport via CSS (see src/ui/theme.py's #question-modal rule).
 """
 
 import gradio as gr
 
+from config import MAX_ASK_OPTIONS
 from src.ui import chat_events, manuscript_events, project_events, state as ui_state, upload_events
 
 
@@ -75,6 +81,14 @@ def build_layout() -> gr.Blocks:
                 versions_radio = gr.Radio(label="Version history (last 5)", choices=[])
                 revert_btn = gr.Button("Revert to selected version")
 
+        with gr.Column(visible=False, elem_id="question-modal") as question_modal:
+            with gr.Column(elem_id="question-modal-card"):
+                question_text = gr.Markdown()
+                option_buttons = [
+                    gr.Button(visible=False, elem_classes=["question-option-btn"])
+                    for _ in range(MAX_ASK_OPTIONS)
+                ]
+
         # --- Project ---
         load_btn.click(
             project_events.load_project,
@@ -132,9 +146,19 @@ def build_layout() -> gr.Blocks:
             versions_radio,
             state_manuscript_versions,
             msg_box,
+            question_modal,
+            question_text,
+            *option_buttons,
         ]
         send_btn.click(chat_events.respond, inputs=chat_inputs, outputs=chat_outputs)
         msg_box.submit(chat_events.respond, inputs=chat_inputs, outputs=chat_outputs)
+
+        for btn in option_buttons:
+            btn.click(
+                chat_events.select_option,
+                inputs=[btn],
+                outputs=[msg_box, question_modal],
+            ).then(chat_events.respond, inputs=chat_inputs, outputs=chat_outputs)
 
         # --- Manuscript ---
         revert_btn.click(

@@ -123,13 +123,46 @@ CSS = """
 }
 #component-0 { background: %(bg)s !important; }
 .chatbot { border-color: %(border)s !important; }
+
+/* Claude-style messages: user gets a right-aligned tinted bubble, the
+   assistant is plain text with no bubble — closer to a document than a
+   chat log, which fits a writing tool better than two rows of bubbles. */
 .chatbot .message.user {
     background: %(surface)s !important;
     color: %(text)s !important;
+    border-radius: 14px !important;
+    margin-left: auto !important;
 }
 .chatbot .message.bot {
-    background: %(panel)s !important;
+    background: transparent !important;
     color: %(text)s !important;
+    border: none !important;
+    padding-left: 0 !important;
+}
+
+/* Question popup: no native Gradio Modal in this version, so this is a
+   Column pinned over the viewport and toggled visible=True/False. */
+#question-modal {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+#question-modal-card {
+    background: %(panel)s !important;
+    border: 1px solid %(border)s !important;
+    border-radius: 12px !important;
+    padding: 24px !important;
+    max-width: 480px !important;
+    width: 90%% !important;
+}
+.question-option-btn {
+    width: 100%% !important;
+    text-align: left !important;
+    margin-top: 8px !important;
 }
 """ % {"bg": _BG, "panel": _PANEL, "surface": _SURFACE, "border": _BORDER, "text": _TEXT}
 

@@ -1,6 +1,12 @@
 """Assemble the Ollama `messages` list for one chat turn."""
 
-from config import MANUSCRIPT_END_MARKER, MANUSCRIPT_START_MARKER, MAX_HISTORY_TURNS
+from config import (
+    ASK_END_MARKER,
+    ASK_START_MARKER,
+    MANUSCRIPT_END_MARKER,
+    MANUSCRIPT_START_MARKER,
+    MAX_HISTORY_TURNS,
+)
 from src.rag.retriever import retrieve_context
 
 _SYSTEM_TEMPLATE = """You are a scientific writing assistant — first and foremost a natural \
@@ -33,8 +39,23 @@ like this, with nothing after the closing marker:
 ...full manuscript text...
 {end_marker}
 
+If you need the user to pick between a small number of clear options before you can proceed (e.g. \
+which of two directions to take a section, which term to use consistently, whether to keep or cut \
+something) — and ONLY in that situation, not for open-ended questions — ask using this format \
+instead of plain text, with nothing else in the response:
+
+{ask_start}
+Question: <your question, one sentence>
+Options: <option 1> | <option 2> | <option 3>
+{ask_end}
+
+Use 2 to 4 short, distinct options. Do not use this for open-ended questions ("what do you think?", \
+"what should I add?") — those just get a normal conversational reply. Use it rarely, only when a \
+real fork in the road is blocking progress.
+
 For every other message — including requests to write or revise something — just reply in words. \
-Do not include that block unless the user explicitly asked for the manuscript/document itself."""
+Do not include the manuscript block unless the user explicitly asked for the manuscript/document \
+itself, and do not include the question block unless you genuinely need a choice made."""
 
 
 def _style_section(style_profile: str) -> str:
@@ -55,6 +76,8 @@ def build_messages(
         manuscript=manuscript_text or "(empty — no manuscript yet)",
         start_marker=MANUSCRIPT_START_MARKER,
         end_marker=MANUSCRIPT_END_MARKER,
+        ask_start=ASK_START_MARKER,
+        ask_end=ASK_END_MARKER,
     )
 
     messages = [{"role": "system", "content": system_content}]
