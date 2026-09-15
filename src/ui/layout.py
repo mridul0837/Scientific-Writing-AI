@@ -10,6 +10,7 @@ Event wiring:
   Samples .upload()     -> upload_events.process_samples -> (.then) upload_events.learn_style
   Send click / Enter    -> chat_events.respond (generator, streaming)
   Revert button         -> manuscript_events.revert_version
+  Add-to-manuscript btn -> manuscript_events.add_last_reply_to_manuscript
 """
 
 import gradio as gr
@@ -59,6 +60,13 @@ def build_layout() -> gr.Blocks:
                 chatbot = gr.Chatbot(label="Scientific Writing AI", height=600)
                 msg_box = gr.Textbox(label="Message", placeholder="Ask, write, rewrite, review...")
                 send_btn = gr.Button("Send", variant="primary")
+                with gr.Row():
+                    section_name_box = gr.Textbox(
+                        label="Section name",
+                        placeholder="e.g. Introduction",
+                        scale=3,
+                    )
+                    add_section_btn = gr.Button("Add last reply to manuscript", scale=2)
 
             with gr.Column(scale=1):
                 manuscript_display = gr.Textbox(
@@ -133,6 +141,18 @@ def build_layout() -> gr.Blocks:
             manuscript_events.revert_version,
             inputs=[versions_radio, state_manuscript_text, state_manuscript_versions, state_user_project],
             outputs=[state_manuscript_text, state_manuscript_versions, manuscript_display, versions_radio],
+        )
+
+        add_section_btn.click(
+            manuscript_events.add_last_reply_to_manuscript,
+            inputs=[section_name_box, state_messages, state_manuscript_text, state_manuscript_versions, state_user_project],
+            outputs=[
+                state_manuscript_text,
+                state_manuscript_versions,
+                manuscript_display,
+                versions_radio,
+                section_name_box,
+            ],
         )
 
     return demo

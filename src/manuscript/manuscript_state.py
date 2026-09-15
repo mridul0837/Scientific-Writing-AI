@@ -1,13 +1,25 @@
-"""Parse the manuscript-edit protocol out of a completed LLM response."""
+"""Parse the manuscript-edit protocol out of a completed LLM response.
 
-from config import MANUSCRIPT_START_MARKER, MANUSCRIPT_END_MARKER
+The model is only supposed to emit a manuscript block when the user explicitly
+asked to see/get/compile the manuscript itself — everything else is plain
+chat and this returns edit=None.
+"""
+
+from config import MANUSCRIPT_END_MARKER, MANUSCRIPT_START_MARKER
+
+
+def visible_prefix(buffer: str) -> str:
+    """The portion of a streaming buffer safe to show before the manuscript marker starts."""
+    idx = buffer.find(MANUSCRIPT_START_MARKER)
+    return buffer if idx == -1 else buffer[:idx]
 
 
 def split_reply_and_edit(full_text: str) -> tuple[str, str | None]:
     """Return (visible_reply, new_manuscript_text_or_None).
 
     If the model emitted a manuscript block, it is stripped out of the visible
-    reply and returned separately so the caller can apply/version/persist it.
+    reply (any text before and after the marker is preserved) and returned
+    separately so the caller can version/persist it.
     """
     if MANUSCRIPT_START_MARKER not in full_text:
         return full_text.strip(), None

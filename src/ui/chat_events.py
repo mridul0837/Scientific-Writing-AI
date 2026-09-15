@@ -1,10 +1,12 @@
 """Streaming chat handler: builds the prompt, streams the reply, and applies
-any manuscript edit the model emits via the MANUSCRIPT_START/END marker protocol."""
+a manuscript update only when the model emits the MANUSCRIPT_START/END block —
+which the prompt only allows when the user explicitly asked for the manuscript
+itself (see src/prompt_builder.py). A plain "write this" request just gets a
+normal chat reply and does not touch the manuscript."""
 
 import gradio as gr
 
-from config import MANUSCRIPT_START_MARKER
-from src.manuscript.manuscript_state import split_reply_and_edit
+from src.manuscript.manuscript_state import split_reply_and_edit, visible_prefix
 from src.manuscript.versioning import add_version, format_label
 from src.ollama_client import chat_stream
 from src.persistence import chat_store, manuscript_store
@@ -17,7 +19,7 @@ def respond(user_message, messages, manuscript_text, style_profile, collection, 
         yield messages, messages, manuscript_text, manuscript_text, gr.update(), versions, ""
         return
     if not user_project.get("user") or not user_project.get("project"):
-        raise gr.Error("Load a project first (Project tab).")
+        raise gr.Error("Load a project first (expand Project & Sources).")
 
     user, project = user_project["user"], user_project["project"]
 
@@ -34,8 +36,7 @@ def respond(user_message, messages, manuscript_text, style_profile, collection, 
     full_buffer = ""
     for chunk in chat_stream(llm_messages):
         full_buffer += chunk
-        visible = full_buffer.split(MANUSCRIPT_START_MARKER)[0]
-        messages[-1]["content"] = visible or "…"
+        messages[-1]["content"] = visible_prefix(full_buffer) or "…"
         yield messages, messages, manuscript_text, manuscript_text, gr.update(), versions, ""
 
     reply, new_manuscript = split_reply_and_edit(full_buffer)
@@ -43,7 +44,7 @@ def respond(user_message, messages, manuscript_text, style_profile, collection, 
 
     versions_update = gr.update()
     if new_manuscript is not None:
-        versions = add_version(versions, manuscript_text, note="AI edit")
+        versions = add_version(versions, manuscript_text, note="Manuscript compiled")
         manuscript_text = new_manuscript
         manuscript_store.save_current(user, project, manuscript_text)
         manuscript_store.save_versions(user, project, versions)
