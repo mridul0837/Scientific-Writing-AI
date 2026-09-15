@@ -57,7 +57,7 @@ def build_layout() -> gr.Blocks:
                         revert_btn = gr.Button("Revert to selected version")
 
             with gr.Column(scale=2):
-                chatbot = gr.Chatbot(label="Scientific Writing AI", type="messages", height=600)
+                chatbot = gr.Chatbot(label="Scientific Writing AI", height=600)
                 msg_box = gr.Textbox(label="Message", placeholder="Ask, write, rewrite, review...")
                 send_btn = gr.Button("Send", variant="primary")
 

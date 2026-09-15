@@ -17,6 +17,7 @@ def split_reply_and_edit(full_text: str) -> tuple[str, str | None]:
         # Marker started but never closed (e.g. stream cut short) — no edit to apply.
         return before.strip(), None
 
-    manuscript_text, _, _after = rest.partition(MANUSCRIPT_END_MARKER)
-    reply = before.strip() or "Manuscript updated."
+    manuscript_text, _, after = rest.partition(MANUSCRIPT_END_MARKER)
+    reply_parts = [before.strip(), after.strip()]
+    reply = "\n\n".join(p for p in reply_parts if p) or "Manuscript updated."
     return reply, manuscript_text.strip()
